@@ -29,10 +29,14 @@ full reference is [apps.md](../apps.md).
 3. **Every route the app's server answers is declared** under `provides:`: public in `endpoints:` (method, relative
    path, description) or in `private:` (relative path, trailing `*` for a subtree, optional method).
 4. **Every outside origin the page fetches or opens a websocket to** goes in `connects:`. Iframes need nothing.
-5. **Using the zenoh-gateway** (topics) requires `uses: "@zenoh-gateway": ">=0.5 <0.6"`.
-6. **Required:** `spec-version: v1.0` (the dimos.yaml spec the file follows; lowest minor that has every key you use).
-   Never use a key a lower minor doesn't know: unknown keys are ignored with a warning, not an error. Never write the
-   deprecated `dimos-api:`, `dimos:`, `agent:` or `private:` (top level): `uses:` and `provides:` replace them.
+5. **Using the zenoh-gateway** (topics) requires `uses: "@zenoh-gateway": ">=0.5 <0.6"` and, on spec v1.2, a `zenoh:`
+   section listing every key the page reads (`read:`, e.g. `messages: [declare_subscriber, query]`) and writes
+   (`write:`, e.g. `messages: [put]`) as `key_exprs` (`*`/`**` wildcards). v1.2 without `zenoh:` = no zenoh access.
+   Shape and messages: [apps.md](../apps.md#zenoh-spec-v12-what-an-apps-pages-may-do-on-zenoh).
+6. **Required:** `spec-version: v1.2` for an app that uses zenoh (with its `zenoh:` rules), else the lowest minor that
+   has every key you use (`v1.0`, or `v1.1` for `optional:`). Never use a key a lower minor doesn't know: unknown keys
+   are ignored with a warning, not an error. Never write the deprecated `dimos-api:`, `dimos:`, `agent:` or `private:`
+   (top level): `uses:` and `provides:` replace them.
 7. **A server reads `DIMOS_APP`** (JSON env var) and serves HTTP on its `socket`. Use `dataDir` for files (the checkout
    is replaced on update). Ignore unknown fields.
 8. **Theme:** link `../../theme.css` and use only its tokens; follow the saved skin live (React: the deno-server
