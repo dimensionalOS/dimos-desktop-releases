@@ -158,7 +158,7 @@ Desktop's own events don't go through the relay; nothing outside Desktop may pub
     "apps": "dimos-desktop/jeffs-mac-7341/apps",
     "zenohPrefix": "dimos-desktop/jeffs-mac-7341/apps/dim-controller",
     "zenohGatewayUrl": "/zenoh-gateway",
-    "client": "https://esm.sh/gh/jeff-hykin/zenoh-gateway@6c3bc26/client/zenoh_gateway.ts",
+    "client": "https://esm.sh/gh/jeff-hykin/zenoh-gateway@dc00dd7/client/zenoh_gateway.ts",
     "up": true
 }
 ```

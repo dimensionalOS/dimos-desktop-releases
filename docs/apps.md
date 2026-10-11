@@ -62,13 +62,21 @@ uses: # everything it calls outside itself; something that isn't there stops the
     "@zenoh-gateway": ">=0.5 <0.6" # it uses the zenoh-gateway: the versions it works with
     dim-rerun: [POST api/open] # any other name: that app's public endpoints, relative to /apps/<name>/
 zenoh: # spec v1.2: what its pages may read and write through the zenoh-gateway; without it, nothing (below)
+    default_permission: deny # what no rule decides gets (allow or deny), as in zenoh's ACL
     read: # what reaches the page
-        - id: robot-state # optional, a name for the rule
-          messages: [declare_subscriber, query] # subscribe to, and `get`, these keys
+        - id: robot-state # each rule's own name
+          messages: [declare_subscriber, put, query, reply] # subscribe (and get its samples), `get` (and its replies)
           key_exprs: ["*/odom", "*/color_image", "camera/**"]
+          permission: allow
+        - id: no-raw-depth
+          messages: [put] # samples on these keys never reach the page
+          key_exprs: ["camera/*/depth_raw"]
+          permission: deny # a deny always wins
     write: # what the page sends out
-        - messages: [put] # publish (session puts and publishers)
+        - id: drive
+          messages: [put] # publish (session puts and publishers)
           key_exprs: [cmd_vel]
+          permission: allow
 connects: # origins outside Desktop its pages fetch from or open websockets to (any iframe is allowed without this)
     - ws://*:9876 # any machine, port 9876
 caches: # optional: binary caches holding this app's builds; Desktop's nix builds use them once nix.conf trusts them
@@ -139,49 +147,72 @@ checked when the app is installed, updated or switched and shown in the App Stor
 
 ### `zenoh:` (spec v1.2): what an app's pages may do on zenoh
 
-A page that uses the zenoh-gateway may do on zenoh only what its app's `zenoh:` section allows, and the gateway refuses
-the rest. The section has the shape of [zenoh's own access-control config](https://zenoh.io/docs/manual/access-control/)
-rules (`messages`, optional `flows`, `key_exprs`, optional `id` and `permission`), listed twice: `read:` (what reaches
-the page) and `write:` (what the page sends out). Both are deny by default, so a rule only ever allows (`permission:`
-may only be `allow`).
+A page that uses the zenoh-gateway may do on zenoh only what its app's `zenoh:` section allows. The section is
+[zenoh's own access-control config](https://zenoh.io/docs/manual/access-control/), decided the same way, for one subject
+(the app): `default_permission` (`allow` or `deny`, required) and rules with zenoh's fields, all required but `flows`:
+`id` (unique), `messages`, `flows`, `key_exprs` and `permission` (`allow` or `deny`). The rules are listed twice:
+`read:` (what reaches the page) and `write:` (what the page sends out).
 
-| list     | message (flow)                                                | lets the page                                                                           |
-| -------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `read:`  | `declare_subscriber` (ingress), `put`, `delete` (egress)      | subscribe (any of the three grants it)                                                  |
-| `read:`  | `query` (ingress), `reply` (egress)                           | `get`, queriers, a querier's matching status                                            |
-| `read:`  | `declare_liveliness_subscriber`, `liveliness_query` (ingress) | watch liveliness, `livelinessGet`                                                       |
-| `write:` | `put` (ingress)                                               | publish: session `put`, publishers (and deadmen), leases, a publisher's matching status |
-| `write:` | `delete` (ingress)                                            | session `delete`                                                                        |
-| `write:` | `declare_queryable`, `reply` (ingress), `query` (egress)      | declare queryables and answer them                                                      |
-| `write:` | `liveliness_token` (ingress)                                  | declare liveliness tokens                                                               |
+A message is decided like zenoh decides it: **denied** when a `deny` rule for that message and flow includes its key;
+otherwise **allowed** when `default_permission` is `allow` or an `allow` rule includes it; otherwise denied. The zenoh
+gateway stands where zenoh's router would: **ingress** is what the page sends, **egress** what the gateway hands it.
 
-Flows are seen from the gateway: **ingress** comes from the page, **egress** goes to it. `flows:` may be left out (each
-message takes its flow from the list it's under); when it's there it must include each message's flow (`put` under
-`read:` is egress, under `write:` ingress). A message on the wrong list (`liveliness_token` under `read:`) is a bad
-shape that fails the install, and so is a key expression zenoh wouldn't take as written (`a//b`, `a/**/**`).
+| list     | message (flow)                                                                             | decides                                                                        |
+| -------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `read:`  | `declare_subscriber` (ingress)                                                             | opening a subscription on a key expression                                     |
+| `read:`  | `put`, `delete` (egress)                                                                   | each sample (by its key) a subscription receives                               |
+| `read:`  | `query` (ingress), `reply` (egress)                                                        | `get` (and queriers) on a key expression; each reply (by its key)              |
+| `read:`  | `declare_liveliness_subscriber`, `liveliness_query` (ingress), `liveliness_token` (egress) | watching liveliness, `livelinessGet`; each token (by its key) they report      |
+| `write:` | `put` (ingress)                                                                            | session `put`, publishers (and deadmen), leases, a publisher's matching status |
+| `write:` | `delete` (ingress)                                                                         | session `delete`                                                               |
+| `write:` | `declare_queryable` (ingress), `query` (egress), `reply` (ingress)                         | declaring a queryable; each query it receives; each reply it sends             |
+| `write:` | `liveliness_token` (ingress)                                                               | declaring a liveliness token                                                   |
 
-`key_exprs` are zenoh key expressions: `*` is one chunk, `**` any number (`robot/*/odom`, `camera/**`); a rule covers a
-request when one of its expressions includes the request's key (`camera/**` covers `camera/front/image` and
-`camera/front/**`, not `camera`, nor `**`). `listTopics` shows the keys of the `read:` subscribe and query rules.
-Desktop's own keys sit under its namespace (`dimos-desktop/<host>-<port>/...`, [events.md](events.md)): an app that
-listens there lists e.g. `dimos-desktop/*/desktop/events/**` or `dimos-desktop/*/apps/<name>/frontend/**`.
+`put`, `delete`, `reply`, `query` and `liveliness_token` appear on both lists, one flow each, as in zenoh: `put` under
+`read:` is a sample reaching the page (egress), under `write:` the page's own put (ingress). `flows:` may be left out
+(each message takes its own flow on its list); when it is there it must hold exactly the flows its messages take (`put`
+under `read:` is egress, under `write:` ingress). A message on the wrong list (`declare_queryable` under `read:`), a
+missing field, a repeated `id` or a key expression zenoh wouldn't take as written (`a//b`, `a/**/**`) is a bad shape
+that fails the install.
+
+`key_exprs` are zenoh key expressions: `*` is one chunk, `**` any number (`robot/*/odom`, `camera/**`); a rule decides a
+message when one of its expressions includes the message's key (`camera/**` includes `camera/front/image` and
+`camera/front/**`, not `camera`, nor `**`: a subscription to `**` needs a rule on `**` or `default_permission: allow`).
+A request (subscribing, putting, querying, ...) the rules deny is **refused**; a sample, reply, query or token they deny
+on its way to the page is **dropped**, silently, as zenoh drops it. `listTopics` shows the keys the page could subscribe
+to or query. Desktop's own keys sit under its namespace (`dimos-desktop/<host>-<port>/...`, [events.md](events.md)): an
+app that listens there lists e.g. `dimos-desktop/*/desktop/events/**` or `dimos-desktop/*/apps/<name>/frontend/**`.
 
 What an app gets, by its `spec-version:`:
 
 - **v1.0, v1.1:** read and write on `**`, everything (as before v1.2). A `zenoh:` section in such a file isn't applied
   (a warning says to write `spec-version: v1.2`).
-- **v1.2 (or a newer v1.x) with `zenoh:`:** exactly its rules.
+- **v1.2 (or a newer v1.x) with `zenoh:`:** exactly what its rules and default decide.
 - **v1.2 without `zenoh:`:** nothing: every subscription, put, query, ... is refused. Everything has to be listed, even
-  `**` (`read: [{messages: [declare_subscriber, query], key_exprs: ["**"]}]`).
+  `**` (`default_permission: allow`, or an allow rule on `"**"`).
 
 `zenoh:` decides what pages may do; `uses: "@zenoh-gateway"` (its version range) is still what lets them reach the
 gateway at all, and a v1.2 file with rules but without it gets a warning. A refused request fails in the page with
 `not authorized to <action> "<key>"` (the client's promise rejects, a subscription or publisher ends up `rejected`) and,
 like any refused call, posts one notification per app and rule whose action shows the rule to add (see "The dimos.yaml
-check"). Which page is which app is its Referer, as for the rest of the check: Desktop's own pages (and anything that
-sends no Referer) keep everything. The rules are enforced by the zenoh-gateway Desktop embeds (0.5.5 and later); while
-Desktop proxies to an external `zenoh-gateway` (`zenoh_gateway.external_port`), a page whose app has `zenoh:` rules
-(v1.2) can't connect (403, saying why), since that gateway doesn't know them.
+check").
+
+**Whose a connection is.** The gateway decides this when a page (or server) connects, and refuses a connection it can't
+attribute:
+
+- a page under `/apps/<name>/`, by its Referer: that app's rules (an app that isn't installed: refused);
+- one of Desktop's own pages (a Referer on Desktop's origin outside `/apps/`): everything;
+- an app's server, by the bearer token Desktop hands it as `zenohGatewayToken` in `DIMOS_APP`
+  (`connect(url, { token })`): that app's rules (a token Desktop didn't make: refused);
+- anything else (no Referer, as with `referrerPolicy: "no-referrer"`, another origin's, no token): refused, 401.
+
+Every app shares Desktop's origin, so a page that sets its fetches' `referrer` to another page of the same origin can
+still pass for it: the rules stop an app from using zenoh outside its dimos.yaml by accident or by leaving its Referer
+out, not an app written to impersonate another (that needs each app on its own origin).
+
+The rules are enforced by the zenoh-gateway Desktop embeds (0.5.6 and later). While Desktop proxies to an external
+`zenoh-gateway` (`zenoh_gateway.external_port`), which knows neither, only connections Desktop would give everything
+(Desktop's own pages, apps on v1.0/v1.1) go through; a v1.2 app's page gets a 403 saying why, an unattributed one a 401.
 
 ### Compatibility: dimos.yaml never breaks
 
@@ -270,6 +301,7 @@ Desktop tells the app. It is the whole interface: no flags, no other variables.
     "dataDir": "/Users/me/.dimos/data/apps/dim-controller-v2",
     "desktopUrl": "http://127.0.0.1:7341",
     "zenohGatewayUrl": "http://127.0.0.1:7341/zenoh-gateway",
+    "zenohGatewayToken": "dim-controller-v2.6f1c…",
     "zenohConnect": "tcp/10.0.0.2:7447",
     "zenohNamespace": "dimos-desktop/my-mac-7341",
     "zenohPrefix": "dimos-desktop/my-mac-7341/apps/dim-controller-v2",
@@ -291,6 +323,9 @@ Desktop tells the app. It is the whole interface: no flags, no other variables.
 - `dataDir`: the app's own writable folder (`~/.dimos/data/apps/<name>`, created for it). Its checkout is a git clone
   that updates replace, so files go here.
 - `desktopUrl`: Desktop's own HTTP base (for `/dimos/...`).
+- `zenohGatewayToken`: the bearer token this app's server connects to the zenoh-gateway with
+  (`connect(zenohGatewayUrl, { token })`); it gets the app's `zenoh:` access, and a connection without one (or a page's
+  Referer) is refused.
 - `zenohGatewayUrl`: Desktop's zenoh-gateway. `zenohConnect`: the zenoh endpoint dimos modules are on (empty = peer on
   the local network), for a server that talks zenoh itself.
 - `zenohNamespace`: Desktop's zenoh namespace (`desktop.namespace`); `zenohPrefix`: `<zenohNamespace>/apps/<name>`, this
@@ -357,7 +392,7 @@ commands), `get`, answer queries and use liveliness without a dimos-version-spec
 the gateway at the fixed same-origin path `/zenoh-gateway`, i.e. `../../zenoh-gateway` from `/apps/<name>/`:
 
 ```js
-import { connect } from "https://esm.sh/gh/jeff-hykin/zenoh-gateway@6c3bc26/client/zenoh_gateway.ts"
+import { connect } from "https://esm.sh/gh/jeff-hykin/zenoh-gateway@dc00dd7/client/zenoh_gateway.ts"
 const zenoh = await connect(new URL("../../zenoh-gateway", location.href).href)
 ```
 

@@ -30,9 +30,12 @@ full reference is [apps.md](../apps.md).
    path, description) or in `private:` (relative path, trailing `*` for a subtree, optional method).
 4. **Every outside origin the page fetches or opens a websocket to** goes in `connects:`. Iframes need nothing.
 5. **Using the zenoh-gateway** (topics) requires `uses: "@zenoh-gateway": ">=0.5 <0.6"` and, on spec v1.2, a `zenoh:`
-   section listing every key the page reads (`read:`, e.g. `messages: [declare_subscriber, query]`) and writes
-   (`write:`, e.g. `messages: [put]`) as `key_exprs` (`*`/`**` wildcards). v1.2 without `zenoh:` = no zenoh access.
-   Shape and messages: [apps.md](../apps.md#zenoh-spec-v12-what-an-apps-pages-may-do-on-zenoh).
+   section in zenoh's ACL shape: `default_permission: deny` plus rules (`id`, `messages`, `key_exprs`,
+   `permission:
+   allow|deny`) under `read:` (e.g. `messages: [declare_subscriber, put]` to subscribe and get samples)
+   and `write:` (e.g. `messages: [put]`), `*`/`**` wildcards, a deny always winning. v1.2 without `zenoh:` = no zenoh
+   access. A server connects with `zenohGatewayToken` from `DIMOS_APP`. Shape and messages:
+   [apps.md](../apps.md#zenoh-spec-v12-what-an-apps-pages-may-do-on-zenoh).
 6. **Required:** `spec-version: v1.2` for an app that uses zenoh (with its `zenoh:` rules), else the lowest minor that
    has every key you use (`v1.0`, or `v1.1` for `optional:`). Never use a key a lower minor doesn't know: unknown keys
    are ignored with a warning, not an error. Never write the deprecated `dimos-api:`, `dimos:`, `agent:` or `private:`
