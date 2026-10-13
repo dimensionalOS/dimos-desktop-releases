@@ -42,7 +42,7 @@ else
         url="https://github.com/$repo/releases/download/$version/$asset"
     fi
     if [ "$version" = "latest" ] && ! curl -fsLI -o /dev/null "$url"; then
-        # the newest release may still be building this machine's binary (the Intel Mac's comes last): take the newest
+        # the newest release may still be building this machine's binary (each platform's joins it when built): take the newest
         # release that has it
         newest="$(curl -fsL "https://api.github.com/repos/$repo/releases?per_page=20" 2>/dev/null |
             grep -o "\"browser_download_url\": *\"[^\"]*/$asset\"" | head -n 1 | sed 's/.*: *"//; s/"$//' || true)"
