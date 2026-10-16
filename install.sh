@@ -6,7 +6,8 @@
 #                       a release's copy: its own repo)
 # DIMOS_DESKTOP_VERSION release tag (default: the latest release; a release's copy: that release)
 # DIMOS_DESKTOP_BINARY  use this local binary instead of downloading one
-# DIMOS_YES=1           replace an installed Desktop without asking (like `bash -s -- --yes`)
+# With no terminal (an agent's shell, a launcher), say who is installing: `bash -s -- --agentic` (an AI agent: it installs
+# the rest itself, from `dimos-desktop install-check`) or `bash -s -- --gui-install` (a person, in the browser).
 set -euo pipefail
 
 repo="${DIMOS_DESKTOP_REPO:-jeff-hykin/dimos-desktop-mirror}"
@@ -28,6 +29,27 @@ case "$(uname -m)" in
     *) fail "unsupported CPU $(uname -m); x86_64 and arm64 are supported" ;;
 esac
 asset="dimos-desktop-${arch}-${os}"
+
+# no terminal to ask in: who installs must be said (setup checks it too; this fails before the download)
+if ! { : </dev/tty; } 2>/dev/null; then
+    told=""
+    for arg in "$@"; do
+        case "$arg" in
+            --agentic | --gui-install) told=1 ;;
+        esac
+    done
+    if [ -z "$told" ]; then
+        cat >&2 <<'EOF'
+dimos-desktop install: there's no terminal here, so say who is installing:
+  --agentic      an AI agent is running this: it installs the rest itself, step by step (`dimos-desktop install-check`
+                 says what's left), while the browser shows the user a checklist
+  --gui-install  a person is: the install goes on in the browser, where they type the computer's password in its
+                 terminal
+e.g.  curl -fsSL https://raw.githubusercontent.com/jeff-hykin/dimos-desktop-mirror/main/install.sh | bash -s -- --agentic
+EOF
+        exit 1
+    fi
+fi
 
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
@@ -74,8 +96,7 @@ if [ -n "${SSH_CONNECTION:-}${SSH_CLIENT:-}${SSH_TTY:-}" ]; then
 fi
 
 # `curl | bash` gives this script the pipe as stdin; hand the installer the terminal for its prompts. With no terminal,
-# setup returns once Desktop is up (the install goes on in the browser) and won't replace an existing Desktop unless
-# given --yes (or DIMOS_YES=1)
+# setup returns once Desktop is up (the install goes on in the browser, or the agent's --agentic steps)
 if [ -t 1 ] && { : </dev/tty; } 2>/dev/null; then
     "$binary" setup "$@" </dev/tty
 else
