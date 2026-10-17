@@ -16,6 +16,27 @@ leaves your shell's PATH alone (`--modify-path` to change it). Each variable set
 `DIMCODE_HOME`, `XDG_STATE_HOME`, `--port`) wins. `dimos-desktop uninstall --all --yes` removes it again (its dimcode
 gateway and dimos gateway stopped).
 
+## Hot-patching the UI
+
+The binary carries the UI, but serves it from disk, re-read on every request: a UI-only fix is an rsync, not a rebuild.
+Under `<DIMOS_HOME>/desktop/ui/`:
+
+- `<hash>/` is the built-in UI, written there at start (the hash is of the embedded files). It is managed: missing or
+  edited files are put back on the next start, and an older build's `<hash>/` is removed. Don't patch it.
+- `override/` wins while it has an `index.html`, as does `DIMOS_DESKTOP_UI=<dir>` (before `override/`). Emptying or
+  removing it brings the built-in UI back, no restart. Settings' "desktop version" line says "hot-patched UI" while one
+  is served, and `GET /api/info` has `ui: { source: embedded | override | env, dir, embedded }`.
+
+```sh
+run/ui_patch --host nvidia@r1-pro-0219   # deno task ui:build, rsync ui/dist → the robot's override/, reload its pages
+run/ui_patch                             # the same, for this machine's Desktop
+run/ui_patch --dist some/dist            # push a build you already have
+run/ui_patch --clear --host nvidia@r1-pro-0219   # back to the built-in UI
+```
+
+`POST /api/desktop/ui/reload` (what `run/ui_patch` calls, on the target's 127.0.0.1) reloads every open Desktop page.
+The next Desktop release or rebuild doesn't remove an override: clear it once the fix has shipped.
+
 ## Layout
 
 | Path                   | What                                                                                              |
