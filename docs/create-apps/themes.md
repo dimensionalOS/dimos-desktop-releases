@@ -4,8 +4,8 @@ An app looks like the Desktop around it, in every skin, and follows a skin chang
 set of CSS variables (the **theme contract**) and nothing else. This page is the theming reference; the other docs link
 here. Each skin's design language (what it's for, its palette, type, shape, depth, motion, do and don't) has its own
 page under [themes/](themes/), with a live specimen page:
-[Portal](https://dimensionalos.github.io/dimos-desktop-releases/create-apps/themes/portal.html),
-[Research](https://dimensionalos.github.io/dimos-desktop-releases/create-apps/themes/research.html).
+[Portal](https://jeff-hykin.github.io/dimos-desktop-mirror/create-apps/themes/portal.html),
+[Research](https://jeff-hykin.github.io/dimos-desktop-mirror/create-apps/themes/research.html).
 
 ## One source of truth: Desktop's `/theme.css`
 

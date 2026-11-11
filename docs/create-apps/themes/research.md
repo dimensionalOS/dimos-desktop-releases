@@ -1,7 +1,7 @@
 # Research
 
 `html[data-skin="research"]` in `/theme.css`.
-**[Open the live specimen](https://dimensionalos.github.io/dimos-desktop-releases/create-apps/themes/research.html)**: every
+**[Open the live specimen](https://jeff-hykin.github.io/dimos-desktop-mirror/create-apps/themes/research.html)**: every
 token, the type scale and the components built from them. How theming works for an app: [../themes.md](../themes.md).
 
 ## Mood
