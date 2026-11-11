@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Downloads the dimos-desktop binary for this machine and runs its installer.
-#   curl -fsSL https://raw.githubusercontent.com/jeff-hykin/dimos-desktop-mirror/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/dimensionalOS/dimos-desktop-releases/main/install.sh | bash
 # Arguments after `bash -s --` go to `dimos-desktop setup` (see `dimos-desktop setup --help`).
-# DIMOS_DESKTOP_REPO    GitHub owner/repo to download from (default jeff-hykin/dimos-desktop-mirror, the public mirror;
+# DIMOS_DESKTOP_REPO    GitHub owner/repo to download from (default dimensionalOS/dimos-desktop-releases, the public mirror;
 #                       a release's copy: its own repo)
 # DIMOS_DESKTOP_VERSION release tag (default: the latest release; a release's copy: that release)
 # DIMOS_DESKTOP_BINARY  use this local binary instead of downloading one
@@ -10,7 +10,7 @@
 # the rest itself, from `dimos-desktop install-check`) or `bash -s -- --gui-install` (a person, in the browser).
 set -euo pipefail
 
-repo="${DIMOS_DESKTOP_REPO:-jeff-hykin/dimos-desktop-mirror}"
+repo="${DIMOS_DESKTOP_REPO:-dimensionalOS/dimos-desktop-releases}"
 version="${DIMOS_DESKTOP_VERSION:-latest}"
 
 fail() {
@@ -45,7 +45,7 @@ dimos-desktop install: there's no terminal here, so say who is installing:
                  says what's left), while the browser shows the user a checklist
   --gui-install  a person is: the install goes on in the browser, where they type the computer's password in its
                  terminal
-e.g.  curl -fsSL https://raw.githubusercontent.com/jeff-hykin/dimos-desktop-mirror/main/install.sh | bash -s -- --agentic
+e.g.  curl -fsSL https://raw.githubusercontent.com/dimensionalOS/dimos-desktop-releases/main/install.sh | bash -s -- --agentic
 EOF
         exit 1
     fi
