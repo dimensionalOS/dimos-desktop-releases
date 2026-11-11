@@ -11,6 +11,8 @@ Here's three example apps:
 There's a [for-agents.md](for-agents.md) if you want to offload the work. They're especially good at following the
 [themes guide](themes.md) and [icon style guide](make-an-icon.md).
 
+Trying a change on a robot (a Jetson, a Raspberry Pi)? Don't build on it: [edge-compute.md](edge-compute.md).
+
 ## 1. Required Stuff
 
 1. A git repo
@@ -29,26 +31,26 @@ There's a [for-agents.md](for-agents.md) if you want to offload the work. They'r
 
 ![The Install From URL box in the App Store](images/install-from-url.png)
 
-Push a change, then **Update** it in the App Store. No `vX.Y.Z` tag yet: it installs the default branch.
+Just push a `vX.Y.Z` github tag for people to see that you updated your app. 
 
-### There's a few tools in the toolbox
+### Tools for your app
 
 - Subscribe or publish topics? The
-  [zenoh-gateway](https://github.com/jeff-hykin/zenoh-gateway/blob/main/docs/how-to.md).
+  [zenoh-gateway](https://github.com/dimensionalOS/zenoh-gateway/blob/main/docs/how-to.md).
 - Run a sudo command? The
-  [DimApp terminal tool](https://github.com/jeff-hykin/dim-app#terminal-tool-run-a-shell-command-sudo-too-in-desktop).
+  [DimApp terminal tool](https://github.com/dimensionalOS/ddtk#terminal-tool-run-a-shell-command-sudo-too-in-desktop).
 - Launch a blueprint, or list a module's inputs and outputs? The
   [dimos gateway](https://github.com/dimensionalOS/dimos/blob/jeff/feat/dimos_server/docs/usage/gateway-how-to.md).
 - Notifications, opening apps, Desktop events? The [desktop gateway](../how-to.md).
 - Want Desktop's agent to call your app? The agentic gateway ([agent.md](../agent.md)): list your endpoints under
-  `provides:` (§4).
+  `provides:` (see [Offer an API](#4-offer-an-api)).
 
 ## 3. Examples
 
-With [dim-app](https://github.com/jeff-hykin/dim-app), from a page:
+With [dim-app](https://github.com/dimensionalOS/ddtk), from a page:
 
 ```js
-import { DimApp, notify, openApp } from "https://esm.sh/gh/jeff-hykin/dim-app@v0.20.4/mod.js"
+import { DimApp, notify, openApp } from "https://esm.sh/gh/dimensionalOS/ddtk@v0.20.4/mod.js"
 
 const app = new DimApp({ msgDecodeEndpoint: "../../dimos/msgs.js" })
 
@@ -104,14 +106,14 @@ if (route === "POST /api/notes") {
 Backend → page is always zenoh. The backend publishes:
 
 ```js
-import { publishFrontend } from "https://esm.sh/gh/jeff-hykin/dim-app@v0.20.4/mod.js"
+import { publishFrontend } from "https://esm.sh/gh/dimensionalOS/ddtk@v0.20.4/mod.js"
 publishFrontend("events", { type: "saved", id })
 ```
 
 Any language: `POST <desktopUrl>/desktop/frontend/<name>/events` with the body. The page listens:
 
 ```js
-import { appEvents } from "https://esm.sh/gh/jeff-hykin/dim-app@v0.20.4/mod.js"
+import { appEvents } from "https://esm.sh/gh/dimensionalOS/ddtk@v0.20.4/mod.js"
 appEvents((event) => console.log(event))
 ```
 
@@ -156,22 +158,18 @@ caches:
       key: "your-cache.cachix.org-1:..."
 ```
 
-The App Store gives users the one sudo command to trust it. Cross builds for robots: `nix.cache` in
-[apps.md](../apps.md).
-
 ## 6. flake.nix
 
 This has to work from your repo's root, on Mac and Linux:
 
 ```sh
-nix build .#dimosApp
+nix build '.#dimosApp'
 ```
 
 `./result` then holds either a `bin/dimos-app-server` (Desktop runs it, with `DIMOS_APP` set) or an `index.html` (a page
 with no server).
 
-Anything nix can build can be a dependency: Python with CUDA, ROS, a Rust crate with C libraries, a model file, a pinned
-compiler. Put it in the flake and the user never installs it by hand. Start from an example's `flake.nix`.
+Anything nix can build can be a dependency: Python with CUDA, ffmpeg, ROS, a Rust crate with C libraries, anything.
 
 ## 7. Checklist
 

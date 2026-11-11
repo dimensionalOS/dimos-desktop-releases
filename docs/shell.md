@@ -51,7 +51,7 @@ A command's `status` is `pending`, `running`, `done`, `failed` or `skipped`; `ex
 killed it, 130 when it was interrupted with Ctrl-C. The caller may `POST /api/desktop/shell/<id>/cancel` itself.
 
 The dim-app SDK wraps all of this: `runShell({ title, message, commands })` resolves to the finished session
-([dim-app](https://github.com/jeff-hykin/dim-app)'s `shell.js`).
+([dim-app](https://github.com/dimensionalOS/ddtk)'s `shell.js`).
 
 ## What the user sees
 

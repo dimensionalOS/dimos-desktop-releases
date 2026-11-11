@@ -27,19 +27,29 @@ versions on one machine) can share a zenoh network without hearing each other.
 
 ```yaml
 # ~/.dimos/config.yaml
-desktop:
+zenoh:
     namespace: "" # empty = the default below; or e.g. "lab/robot-desk"
 ```
 
-The default is **`dimos-desktop/<host>-<port>`**: `<host>` is this machine's hostname, lowercased, with anything but
-`a-z 0-9 -` turned into `-` (`Jeffs-MacBook.local` → `jeffs-macbook-local`), and `<port>` is `desktop.port`. Why: a
-fixed default (e.g. `dimos/desktop`) would make every Desktop on a LAN deliver its window commands and notifications to
-every other Desktop's pages (zenoh peers find each other by multicast); the hostname separates machines and the port
-separates two Desktops on one machine, while staying the same across restarts so native publishers can be configured
-once. A configured `namespace` must be a valid zenoh key expression with no wildcards (`*`, `$*`), no `?`, `#`, and no
-empty chunks; Desktop refuses to start with an invalid one.
+The default is **`<machine-id>/<home-slug>`**: `machine_id` is the 32 hex characters naming this machine in a fleet
+(made once, then left alone, so a rename or a new network card doesn't change it), and the home slug is this Desktop's
+home — `default` for `~/.dimos`, a slug of the path otherwise, so a second Desktop started with its own `--home` is a
+separate bus. Why: a fixed default (e.g. `dimos/desktop`) would make every Desktop on a LAN deliver its window commands
+and notifications to every other Desktop's pages (zenoh peers find each other by multicast), so the machine and the
+home are the two things a bus is meant to be partitioned by. Both chunks stay readable rather than hashed together,
+because this is what a fleet's keys are wildcarded by: `*/*/dimos/**` is a fleet and `<machine-id>/*/dimos/**` is one
+machine's homes.
 
-Nobody hardcodes `<ns>`: backends read it from `DIMOS_APP`, pages from `GET /api/desktop/zenoh`.
+Before Desktop 0.2.228 the default was `dimos-desktop/<host>-<port>`, which keyed on two wrong things: a rename moved
+the whole bus (the thing `machine_id` exists not to do), and it keyed on the port rather than the home, so two Desktops
+with different homes on the same port shared a namespace while one Desktop moved its own by changing its port. A
+`namespace` the user set is untouched by the change.
+
+A configured `namespace` must be a valid zenoh key expression with no wildcards (`*`, `$*`), no `?`, `#`, and no empty
+chunks; Desktop refuses to start with an invalid one.
+
+Nobody hardcodes `<ns>`: backends read it from `DIMOS_APP`, pages from
+`GET /gateways/desktop/management/gateways/zenoh`.
 
 ## Keys
 
@@ -68,6 +78,7 @@ Every event payload repeats its type inside (`{"type": "apps"}` on `<ns>/desktop
 | `notification`     | `{type, notification}`: a new notification (the whole object)           | —                                |
 | `notifications`    | `{type}`: some were read, dismissed or cleared                          | `GET /api/notifications`         |
 | `ui-settings`      | `{type, settings}`: the whole `GET /api/ui-settings` object             | —                                |
+| `settings`         | `{type}`: Desktop's settings were saved                                 | `GET /gateways/desktop/settings` |
 | `install`          | `{type, status}`: installer progress (the `GET /api/install` object)    | —                                |
 | `shell`            | `{type, session}`: a shell session changed (no command output)          | `GET /api/desktop/shell/<id>`    |
 | `recordings`       | `{type}`: a recording was renamed, deleted or added                     | `GET /recordings`                |
@@ -116,10 +127,19 @@ the windows.
 `launch` (`{type, launch}` on a phase change), `log` (`{type, runId, record}`, warning and above), `upload`
 (`{type, upload}`), `uploads` (`{type, waitingForLogin, cleared?}`), `upload-removed` (`{type, id}`), `cloud-login`
 (`{type, login}`), `blueprints` (`{type, added, removed}`: the blueprint list changed) and `discovery`
-(`{type, status}`: the discovery scan's progress). The dimos gateway (dimos/gateway/, started with
-`DIMOS_ZENOH_NAMESPACE=<ns>` and `ZENOH_CONNECT`) publishes them itself. Desktop hears them on the same keys through its
-own zenoh session (zenoh-gateway's: none are heard while it's off) to post launch notifications, put failed uploads in
-the error feed and ask for the Launcher's catalog again when the blueprints change.
+(`{type, status}`: the discovery scan's progress). The dimos gateway (dimos/gateway/, started with the namespace in
+its `DIMOS_APP` and config.yaml) publishes them itself. Desktop hears them on the same keys through its own zenoh
+session (zenoh-gateway's: none are heard while it's off) to post launch notifications, put failed uploads in the error
+feed and ask for the Launcher's catalog again when the blueprints change.
+
+One of them is not one chunk. A change to the shared `config.yaml` arrives **per setting**, on
+`<ns>/dimos/events/config/<setting>`, where `<setting>` is a key of `GET /gateways/dimos/config` (`recordingsDir`,
+`path`), with the payload `{"type": "config", "setting": "<setting>"}`. The payload carries **no value**: `GET /config`
+stays the one answer, so a listener's cache and the event can never say different things, and a listener subscribes to
+the setting it actually reads rather than waking for every change to the file. Subscribe to
+`<ns>/dimos/events/**` for all of them — a single `*` matches one chunk and misses these. dim-app's
+`watchSharedConfig()` and `watchRecordingsDir()` are this, and Desktop's own recordings-folder cache is busted by it
+rather than polled for.
 
 ## The relay: `POST /desktop/frontend/<app>/<topic…>`
 
@@ -158,7 +178,7 @@ Desktop's own events don't go through the relay; nothing outside Desktop may pub
     "apps": "dimos-desktop/jeffs-mac-7341/apps",
     "zenohPrefix": "dimos-desktop/jeffs-mac-7341/apps/dim-controller",
     "zenohGatewayUrl": "/zenoh-gateway",
-    "client": "https://esm.sh/gh/jeff-hykin/zenoh-gateway@ad2bde0/client/zenoh_gateway.ts",
+    "client": "https://esm.sh/gh/dimensionalOS/zenoh-gateway@ad2bde0/client/zenoh_gateway.ts",
     "up": true
 }
 ```

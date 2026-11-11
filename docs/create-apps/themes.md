@@ -4,8 +4,8 @@ An app looks like the Desktop around it, in every skin, and follows a skin chang
 set of CSS variables (the **theme contract**) and nothing else. This page is the theming reference; the other docs link
 here. Each skin's design language (what it's for, its palette, type, shape, depth, motion, do and don't) has its own
 page under [themes/](themes/), with a live specimen page:
-[Portal](https://jeff-hykin.github.io/dimos-desktop-mirror/create-apps/themes/portal.html),
-[Research](https://jeff-hykin.github.io/dimos-desktop-mirror/create-apps/themes/research.html).
+[Portal](https://dimensionalos.github.io/dimos-desktop-releases/create-apps/themes/portal.html),
+[Research](https://dimensionalos.github.io/dimos-desktop-releases/create-apps/themes/research.html).
 
 ## One source of truth: Desktop's `/theme.css`
 
@@ -111,12 +111,12 @@ addEventListener("message", ({ origin, data }) => {
 parent.postMessage({ type: "dimos-inset-request" }, location.origin)
 ```
 
-In React, copy the [deno-server](https://github.com/jeff-hykin/dim-example-deno) example's
-[`src/theme.ts`](https://github.com/jeff-hykin/dim-example-deno/blob/main/src/theme.ts) as is and call
-`useDesktopTheme()` once in the root component: it does all of the above (and `dimos-corners`), before paint, and
-returns `{skin, corners, insets}`. Components don't re-render on a skin change; the tokens change under the CSS. A
-canvas or WebGL view that reads a token (`getComputedStyle(document.documentElement).getPropertyValue("--primary")`)
-reads it again in the `storage` handler.
+In React, use [dimos-react](https://github.com/dimensionalOS/dimos-react): wrap the root in `<AppProvider>` (or just
+`<DimThemeProvider>`) and it does all of the above, insets and corners included, following the saved skin live. That's
+what the [deno-server](https://github.com/jeff-hykin/dim-example-deno) example's
+[`src/main.tsx`](https://github.com/jeff-hykin/dim-example-deno/blob/main/src/main.tsx) does (it vendors dimos-react
+with `deno task vendor-dimos-react <tag>`). `useTheme()` gives `{skin, corners, dark, colors}`; a canvas or WebGL view
+that needs a token's value reads it from `useThemeColors()`.
 
 ## Rules
 

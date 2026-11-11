@@ -32,18 +32,33 @@ When the dimos gateway can't be started, `/dimos/*` answers 503 `{ error }` sayi
 
 ### The blueprint view
 
-`GET /dimos/blueprint_view?name=<blueprint>` (dimos API 1.11+, dimos/gateway/blueprint_view/) is a page of the dimos
-server's: a blueprint's modules (rarest first) beside its module graph (drawn from the wiring, with Desktop's
-`GET /api/topics/rates` on its topics while it runs), each module's streams, skills, RPC methods and code. Its files are
-`/dimos/blueprint_view/<file>`; it links Desktop's `/theme.css` and follows the skin in localStorage `portal.theme`. The
-bottom bar's Details frames it (ui/src/shell/BlueprintDetails.tsx) with Desktop's own Relaunch, Configure and Logs. The
-page and its parent talk over postMessage on Desktop's origin:
+`/?view=blueprint&name=<blueprint>` is Desktop's own page (ui/src/blueprint_view/; before dimos gateway API 9.0 the
+gateway served it at `/gateways/dimos/blueprint_view`): a blueprint's modules (rarest first) beside its module graph
+(drawn from the wiring, with Desktop's `GET /gateways/desktop/topics/rates` on its topics while it runs), each module's
+streams, skills, RPC methods and code, its config dialog, its logs and its processes. It reads the dimos gateway
+(`catalog/blueprints/{name}`, `catalog/blueprints/{name}/source`, `catalog/modules/{class}/source?blueprint=`, `active`,
+`active/stats`, `history/{runId}/logs`) and the Launcher (`config/global`, `config/blueprints/{name}`, `launch`,
+`relaunch`), and follows the gateway's zenoh events (`launch`, `log`, `stats`). Its timers are Desktop settings,
+`GET /gateways/desktop/settings`'s `blueprint-view:` (config.yaml, the keys the gateway read before): `rates-poll-s`
+(2), `poll-without-events-s` (3) and `log-max-records` (5000), read again on a `settings` event. `&run=<runId>` shows
+that run's logs, `&dialog=logs` opens on them, `&hidden=1` starts it paused. The bottom bar's Details frames it
+(ui/src/shell/BlueprintDetails.tsx), loaded ahead and hidden. The page and its parent talk over postMessage on
+Desktop's origin:
 
-| From → to      | Message                                             | Meaning                                                                  |
-| -------------- | --------------------------------------------------- | ------------------------------------------------------------------------ |
-| view → Desktop | `{ type: "dimos:open-in-editor", file, line }`      | Open in editor: Desktop runs `POST /api/open-in-editor` for it           |
-| Desktop → view | `{ type: "dimos:open-in-editor-result", ok, text }` | what that ran (`opened: <command>`), or why it couldn't                  |
-| view → Desktop | `{ type: "dimos:close" }`                           | Escape with nothing left to step back from in the view: the modal closes |
+| From → to      | Message                                             | Meaning                                                                              |
+| -------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| view → Desktop | `{ type: "dimos:chrome", pausable: true }`          | the view is framed: Desktop answers `dimos:chrome-ok` and the view shows its top bar |
+| Desktop → view | `{ type: "dimos:visible", visible }`                | Details was shown or hidden: a hidden view polls nothing                             |
+| view → Desktop | `{ type: "dimos:open-in-editor", file, line }`      | Open in editor: Desktop runs `POST /gateways/desktop/ui/editor/open` for it          |
+| Desktop → view | `{ type: "dimos:open-in-editor-result", ok, text }` | what that ran (`opened: <command>`), or why it couldn't                              |
+| view → Desktop | `{ type: "dimos:close" }`                           | its ✕, or Escape with nothing left to step back from: the modal closes               |
+
+### The standalone app window
+
+`/?view=standalone&app=<app>` is an app framed alone with Desktop's notifications over it (`dimos-desktop app
+standalone`, [apps.md](apps.md#an-app-in-a-window-of-its-own-app-standalone)). The page says it's open with
+`POST /gateways/desktop/ui/standalone/{id}` `{ app }` every `standalone.heartbeat-s` and `{ app, closed: true }` as it
+goes (internal: not in /openapi.json); the light Desktop that command starts stops when none is left.
 
 ### Dimensional cloud: login and uploads
 

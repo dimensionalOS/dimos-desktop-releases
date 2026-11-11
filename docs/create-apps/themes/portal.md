@@ -1,7 +1,7 @@
 # Portal
 
 The default skin (`:root` in `/theme.css`, `html[data-skin="portal"]` or none).
-**[Open the live specimen](https://jeff-hykin.github.io/dimos-desktop-mirror/create-apps/themes/portal.html)**: every
+**[Open the live specimen](https://dimensionalos.github.io/dimos-desktop-releases/create-apps/themes/portal.html)**: every
 token, the type scale and the components built from them. How theming works for an app: [../themes.md](../themes.md).
 
 ## Mood

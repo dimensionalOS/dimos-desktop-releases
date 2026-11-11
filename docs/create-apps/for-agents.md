@@ -35,8 +35,8 @@ full reference is [apps.md](../apps.md).
    deprecated `dimos-api:`, `dimos:`, `agent:` or `private:` (top level): `uses:` and `provides:` replace them.
 7. **A server reads `DIMOS_APP`** (JSON env var) and serves HTTP on its `socket`. Use `dataDir` for files (the checkout
    is replaced on update). Ignore unknown fields.
-8. **Theme:** link `../../theme.css` and use only its tokens; follow the saved skin live (React: the deno-server
-   example's `src/theme.ts` `useDesktopTheme()`). No own theme switch, no hard-coded colors or fonts, never name a skin.
+8. **Theme:** link `../../theme.css` and use only its tokens; follow the saved skin live (React: dimos-react's
+   `<AppProvider>`). No own theme switch, no hard-coded colors or fonts, never name a skin.
    Keep controls above `var(--dim-inset-bottom)`. Tokens and rules: [themes.md](themes.md).
 9. **No secrets in the repo.** Binary-cache tokens go in CI secrets, set by the human.
 10. **Never actuate without a user action.** Publish on command topics (cmd_vel, ...) only from a drive control, never
@@ -62,6 +62,11 @@ notification appears. Tag releases `vX.Y.Z`: Desktop installs the newest tag.
 The user may paste Desktop's **Copy message**: it names the app, the refused `METHOD /path` (or origin), the file
 (`dimos.yaml`) and the YAML to add. Merge it into the keys already there (one `uses:`, one `provides:`), run
 `dimos-desktop app check .`, commit, push, and tag. If the call shouldn't happen at all, remove the call instead.
+
+## On a robot
+
+Never build an app on a robot's computer (Jetson, Raspberry Pi) to try a change: cross compile a debug build on your
+own machine, `rsync` it over and hot-load it ([edge-compute.md](edge-compute.md)).
 
 ## Useful endpoints
 

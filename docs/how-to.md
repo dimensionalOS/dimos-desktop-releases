@@ -1,6 +1,6 @@
 # How to: Desktop's API from an app
 
-Snippets run in an app's page (served at `/apps/<name>/`) with [dim-app](https://github.com/jeff-hykin/dim-app) vendored
+Snippets run in an app's page (served at `/apps/<name>/`) with [dim-app](https://github.com/dimensionalOS/ddtk) vendored
 as `./dim-app/`. Each `uses:` line goes in the app's `dimos.yaml`:
 
 ```yaml

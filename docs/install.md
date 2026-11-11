@@ -221,7 +221,7 @@ checkout that has no dimos.yaml.
 ## Updating
 
 Desktop updates itself from the same releases install.sh downloads (`DIMOS_DESKTOP_REPO`, default
-jeff-hykin/dimos-desktop-mirror; the asset `dimos-desktop-<arch>-<os>`): Settings → Updates, a notification when a newer
+dimensionalOS/dimos-desktop-releases; the asset `dimos-desktop-<arch>-<os>`): Settings → Updates, a notification when a newer
 release is out (checked a minute after start and every 6 hours; `DESKTOP_NO_UPDATE_CHECK=1` turns it off), or
 `dimos-desktop update [--check] [--yes] [--rollback]` (`update <app>` still updates an app). Only the boot service's
 installed binary (`~/.dimos/desktop/bin/dimos-desktop`) updates itself; config and apps are left alone.

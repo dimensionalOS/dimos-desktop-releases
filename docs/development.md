@@ -67,7 +67,7 @@ checkout but its `dimos.yaml`, the install contract ([install.md](install.md)):
 
 Bump `version` in `Cargo.toml`, commit, then tag `v<version>` and push the tag. The release workflow builds all four
 binaries and attaches them and `install.sh` to a GitHub release in the private dimensionalOS/dimos-desktop, then copies it to this public mirror
-(jeff-hykin/dimos-desktop-mirror: releases and install.sh only, no source), which install.sh and the self-updater
+(dimensionalOS/dimos-desktop-releases: releases and install.sh only, no source), which install.sh and the self-updater
 download from: once the binaries and arm bundles are out, again for the Intel Mac ones (`DESKTOP_MIRROR_TOKEN`, a
 fine-grained token with Contents write on the mirror). By hand: `scripts/mirror-release.sh v<version>`.
 
